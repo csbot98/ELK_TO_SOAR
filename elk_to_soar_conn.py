@@ -26,9 +26,8 @@ payloads_to_console= False
 payloads_to_file=False
 
 # Config (ide tedd be külső fájlból is akár)
+es_api = "<ES_API_KEY>"
 es_host = "https://1.1.1.1:1111"
-es_user = "user"
-es_pass = "password"
 
 # Index neve (Opcionálisan cserélhető)
 es_index = ".internal.alerts-security.alerts-default-*"
@@ -36,8 +35,8 @@ es_index = ".internal.alerts-security.alerts-default-*"
 #SOAR info
 soar_host = "2.2.2.2"
 soar_url= "https://2.2.2.2/#incidents?presetId=-1"
-api_key_id = "<APIKEYID>"
-api_key_secret = "<APIKEYSECRET>"
+api_key_id = "<SOAR_API_KEY_ID>"
+api_key_secret = "SOAR_API_KEY_SECRET"
 org_id = "201"
 
 #Email info
@@ -47,7 +46,7 @@ sender_email = "sender@yourdomain.com"
 to_email="recevier@yourdomain.com"
 
 # Teams URL
-webhook_url ="<Teams Webhook URL>"
+webhook_url ="<TEAMS_WEBHOOK_URL>"
 
 ###Logging
 logger = logging.getLogger()
@@ -72,17 +71,6 @@ logger.addHandler(error_file_handler)
 # -----------------------------
 # ----- Functions ----------
 # -----------------------------
-    
-    ##########################
-      # Connect to Elastic #
-    ##########################
-async def connect_to_elasticsearch():
-    es_client = Elasticsearch(
-        es_host,
-        basic_auth=(es_user, es_pass),
-        verify_certs=False
-    )
-    return es_client
     
             #############################
               # Teams Report Part#
@@ -205,13 +193,14 @@ async def search_documents_from_es(es_host, index, query_body, size=100, filenam
         # Az Elasticsearch URL-je
         url = f"{es_host}/{index}/_search"
         headers = {
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
+            "Authorization": f"ApiKey {es_api}"
         }
         auth = aiohttp.BasicAuth(es_user, es_pass)
         query_body["size"] = size
         # Aszinkron HTTP kapcsolat létrehozása
         async with aiohttp.ClientSession() as session:
-            async with session.post(url, json=query_body, headers=headers, auth=auth, verify_ssl=False) as response:
+            async with session.post(url, json=query_body, headers=headers, verify_ssl=False) as response:
                 # Ha a válasz sikeres (HTTP 200)
                 if response.status == 200:
                     data = await response.json()
@@ -760,7 +749,6 @@ def send_email(subject, body, to_email):
 async def main():
     log_debug_banner()
 
-    es = await connect_to_elasticsearch()
     query = build_query_with_rule_name_check()
     hits = await search_documents_from_es(es_host, es_index, query, size=100)
 
@@ -775,7 +763,7 @@ async def main():
     
     now = datetime.now()
     # Ha épp 09:00-kor fut, vagy mondjuk 10:00-10:09 között (mivel 10 percenként fut)    
-    if now.hour == 10 and now.minute < 10:
+    if now.hour == 9 and now.minute < 10:
         send_email(
             subject="Reggeli jelentés",
             body=generate_html_body(),
