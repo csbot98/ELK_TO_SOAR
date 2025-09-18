@@ -196,7 +196,6 @@ async def search_documents_from_es(es_host, index, query_body, size=100, filenam
             "Content-Type": "application/json",
             "Authorization": f"ApiKey {es_api}"
         }
-        auth = aiohttp.BasicAuth(es_user, es_pass)
         query_body["size"] = size
         # Aszinkron HTTP kapcsolat létrehozása
         async with aiohttp.ClientSession() as session:
@@ -222,8 +221,10 @@ async def search_documents_from_es(es_host, index, query_body, size=100, filenam
                     return hits
                 else:
                     raise Exception(f"Elasticsearch kérés hiba: {response.status}")
+                    logger.error(f"Elasticsearch kérés hiba: {response.status}")
     except Exception as e:
         raise RuntimeError(f"Hiba az Elasticsearch keresésnél: {e}")
+        logger.error("Hiba az Elasticsearch keresésnél: {e}")
 
     ####################
       # SOAR Connect #
